@@ -13,6 +13,11 @@ services:
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_ADMIN_TOKEN}
     volumes:
       - influxdb-data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     # We let Docker run influxdb as its default user to ensure proper volume permissions
 
@@ -29,7 +34,13 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   netmon:
@@ -45,7 +56,8 @@ services:
     volumes:
       - ./src/config.yaml:/app/config.yaml:ro
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
     restart: unless-stopped
     # Drop all capabilities and add only the required one
     cap_drop:
@@ -67,8 +79,10 @@ services:
       - ./monitoring/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./monitoring/nginx/certs:/etc/nginx/certs
     depends_on:
-      - grafana
-      - influxdb
+      grafana:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
