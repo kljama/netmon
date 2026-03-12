@@ -58,11 +58,11 @@ func (s *Scanner) runDiscovery(ticketChan chan struct{}) {
 	for _, target := range s.targets {
 		wg.Add(1)
 		targetCopy := target
+		ticketChan <- struct{}{}
 		go func() {
 			defer wg.Done()
-			ticketChan <- struct{}{}
 			defer func() { <-ticketChan }()
-			
+
 			// Only discover if we don't already know they are active
 			if _, exists := s.activeIPs.Load(targetCopy); !exists {
 				up, _, _ := s.pingInternal(targetCopy)
@@ -74,7 +74,7 @@ func (s *Scanner) runDiscovery(ticketChan chan struct{}) {
 		}()
 	}
 	wg.Wait()
-	
+
 	activeCount := 0
 	s.activeIPs.Range(func(key, value interface{}) bool {
 		activeCount++
@@ -88,13 +88,13 @@ func (s *Scanner) runMonitoring(ticketChan chan struct{}) {
 	s.activeIPs.Range(func(key, value interface{}) bool {
 		target := key.(string)
 		wg.Add(1)
+		ticketChan <- struct{}{}
 		go func(t string) {
 			defer wg.Done()
-			ticketChan <- struct{}{}
 			defer func() { <-ticketChan }()
-			
+
 			up, rtt, err := s.pingInternal(t)
-			
+
 			// Wait before persisting to avoid overwhelming if we needed to, but handled by concurrency
 			if err == nil {
 				metricErr := s.metrics.RecordPing(t, rtt, up)
@@ -119,20 +119,19 @@ func (s *Scanner) pingInternal(target string) (bool, time.Duration, error) {
 
 	// We run as non-root with CAP_NET_RAW which allows us to open raw sockets.
 	// Privileged=true tells the library to use raw sockets rather than UDP pings.
-	pinger.SetPrivileged(true) 
+	pinger.SetPrivileged(true)
 	pinger.Count = 1
 	pinger.Timeout = s.cfg.Timeout
-	
+
 	err = pinger.Run()
 	if err != nil {
 		log.Printf("Failed to ping %s: %v", target, err)
 		return false, 0, err
 	}
-	
+
 	stats := pinger.Statistics()
 	if stats.PacketsRecv > 0 {
 		return true, stats.AvgRtt, nil
 	}
 	return false, 0, nil
 }
-
