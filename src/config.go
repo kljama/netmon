@@ -54,7 +54,7 @@ func (c *Config) GenerateTargets() ([]string, error) {
 				if ip.Equal(ipnet.IP) {
 					continue
 				}
-				
+
 				// Calculate broadcast address
 				broadcast := make(net.IP, len(ip.To4()))
 				for i := range ip.To4() {

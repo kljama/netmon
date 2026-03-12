@@ -45,7 +45,7 @@ func (m *MetricsClient) RecordPing(target string, rtt time.Duration, up bool) er
 		AddField("rtt_ms", float64(rtt.Milliseconds())).
 		AddField("up", up).
 		SetTime(time.Now())
-	
+
 	err := m.writeAPI.WritePoint(context.Background(), p)
 	if err != nil {
 		log.Printf("Failed to write point for %s: %v", target, err)
