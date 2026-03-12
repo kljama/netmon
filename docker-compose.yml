@@ -4,8 +4,6 @@ services:
   influxdb:
     image: influxdb:2.7
     container_name: netmon-influxdb
-    ports:
-      - "8086:8086"
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUX_USER}
@@ -21,8 +19,6 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: netmon-grafana
-    ports:
-      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -57,6 +53,20 @@ services:
     cap_add:
       - NET_RAW
     # The container will run as non-root user (configured in Dockerfile)
+
+  nginx:
+    image: nginx:alpine
+    container_name: netmon-nginx
+    ports:
+      - "443:443"
+      - "8086:8086"
+    volumes:
+      - ./monitoring/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./monitoring/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - grafana
+      - influxdb
+    restart: unless-stopped
 
 volumes:
   influxdb-data:

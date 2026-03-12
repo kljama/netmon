@@ -30,3 +30,6 @@ obj/
 
 # Configuration
 src/config.yaml
+
+# Certificates
+monitoring/nginx/certs/
