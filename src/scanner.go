@@ -4,16 +4,18 @@ import (
 	"log"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus-community/pro-bing"
 )
 
 type Scanner struct {
-	targets   []string
-	activeIPs sync.Map
-	cfg       *Config
-	metrics   *MetricsClient
+	targets     []string
+	activeIPs   sync.Map
+	activeCount atomic.Int64
+	cfg         *Config
+	metrics     *MetricsClient
 }
 
 func NewScanner(cfg *Config, metrics *MetricsClient) (*Scanner, error) {
@@ -68,19 +70,17 @@ func (s *Scanner) runDiscovery(ticketChan chan struct{}) {
 				up, _, _ := s.pingInternal(targetCopy)
 				if up {
 					log.Printf("Discovered new active host: %s", targetCopy)
-					s.activeIPs.Store(targetCopy, true)
+					_, loaded := s.activeIPs.LoadOrStore(targetCopy, true)
+					if !loaded {
+						s.activeCount.Add(1)
+					}
 				}
 			}
 		}()
 	}
 	wg.Wait()
 
-	activeCount := 0
-	s.activeIPs.Range(func(key, value interface{}) bool {
-		activeCount++
-		return true
-	})
-	log.Printf("Discovery sweep complete. Tracking %d active hosts.", activeCount)
+	log.Printf("Discovery sweep complete. Tracking %d active hosts.", s.activeCount.Load())
 }
 
 func (s *Scanner) runMonitoring(ticketChan chan struct{}) {
