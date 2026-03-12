@@ -58,6 +58,7 @@ services:
     image: nginx:alpine
     container_name: netmon-nginx
     ports:
+      - "80:80"
       - "443:443"
       - "8086:8086"
     volumes:
