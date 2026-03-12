@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -13,7 +12,7 @@ import (
 
 type MetricsClient struct {
 	client   influxdb2.Client
-	writeAPI api.WriteAPIBlocking
+	writeAPI api.WriteAPI
 	org      string
 	bucket   string
 }
@@ -29,7 +28,14 @@ func NewMetricsClient() (*MetricsClient, error) {
 	}
 
 	client := influxdb2.NewClient(url, token)
-	writeAPI := client.WriteAPIBlocking(org, bucket)
+	writeAPI := client.WriteAPI(org, bucket)
+
+	// Listen to background write errors
+	go func() {
+		for err := range writeAPI.Errors() {
+			log.Printf("Background write error: %v", err)
+		}
+	}()
 
 	return &MetricsClient{
 		client:   client,
@@ -46,14 +52,12 @@ func (m *MetricsClient) RecordPing(target string, rtt time.Duration, up bool) er
 		AddField("up", up).
 		SetTime(time.Now())
 
-	err := m.writeAPI.WritePoint(context.Background(), p)
-	if err != nil {
-		log.Printf("Failed to write point for %s: %v", target, err)
-		return err
-	}
+	// WritePoint is non-blocking and adds the point to the buffer
+	m.writeAPI.WritePoint(p)
 	return nil
 }
 
 func (m *MetricsClient) Close() {
+	m.writeAPI.Flush()
 	m.client.Close()
 }
