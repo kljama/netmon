@@ -55,7 +55,9 @@ services:
     # The container will run as non-root user (configured in Dockerfile)
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./monitoring/nginx
+      dockerfile: Dockerfile
     container_name: netmon-nginx
     ports:
       - "80:80"
@@ -63,7 +65,7 @@ services:
       - "8086:8086"
     volumes:
       - ./monitoring/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./monitoring/nginx/certs:/etc/nginx/certs:ro
+      - ./monitoring/nginx/certs:/etc/nginx/certs
     depends_on:
       - grafana
       - influxdb
