@@ -1,0 +1,4 @@
+## 2024-05-18 - [Fix Missing Authentication on Grafana Endpoint]
+**Vulnerability:** Grafana was configured with anonymous authentication enabled (`GF_AUTH_ANONYMOUS_ENABLED=true`) providing unauthenticated "Viewer" access. This publicly exposed sensitive network monitoring data, host active state, and network topology.
+**Learning:** Development-friendly settings (like anonymous access) were accidentally left enabled in a production configuration (`docker-compose.yml`), despite the `README.md` highlighting secure deployment and password protection via `.env`.
+**Prevention:** Ensure any infrastructure-as-code or Docker Compose configurations strictly disable unauthenticated access unless explicitly required and verified. Do not use development "convenience" settings in default production templates.
