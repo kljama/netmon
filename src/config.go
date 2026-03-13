@@ -48,18 +48,24 @@ func (c *Config) GenerateTargets() ([]string, error) {
 			return nil, fmt.Errorf("invalid network or IP %q: %w", network, err)
 		}
 
+		// Calculate broadcast address outside the loop for IPv4
+		var broadcast net.IP
+		ip4 := ip.To4()
+		isIPv4 := ip4 != nil
+		if isIPv4 {
+			broadcast = make(net.IP, len(ip4))
+			for i := range ip4 {
+				broadcast[i] = ip4[i] | ^ipnet.Mask[i]
+			}
+		}
+
 		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
 			// Skip network address and broadcast address for IPv4
-			if ip.To4() != nil {
+			if isIPv4 {
 				if ip.Equal(ipnet.IP) {
 					continue
 				}
 
-				// Calculate broadcast address
-				broadcast := make(net.IP, len(ip.To4()))
-				for i := range ip.To4() {
-					broadcast[i] = ip.To4()[i] | ^ipnet.Mask[i]
-				}
 				if ip.Equal(broadcast) {
 					continue
 				}
