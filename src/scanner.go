@@ -58,6 +58,15 @@ func (s *Scanner) runDiscovery(ticketChan chan struct{}) {
 	log.Printf("Running discovery sweep on all %d targets...", len(s.targets))
 	var wg sync.WaitGroup
 	for _, target := range s.targets {
+		// ⚡ Bolt: Fast-path early return.
+		// Since activeIPs is append-only in this application (hosts are never removed),
+		// we can safely check if the host is already known before acquiring a concurrency
+		// ticket and spawning a goroutine. This avoids thousands of unnecessary goroutines
+		// and lock acquisitions on subsequent sweeps.
+		if _, exists := s.activeIPs.Load(target); exists {
+			continue
+		}
+
 		wg.Add(1)
 		targetCopy := target
 		ticketChan <- struct{}{}
@@ -66,6 +75,7 @@ func (s *Scanner) runDiscovery(ticketChan chan struct{}) {
 			defer func() { <-ticketChan }()
 
 			// Only discover if we don't already know they are active
+			// (Double-check in case another goroutine just discovered it)
 			if _, exists := s.activeIPs.Load(targetCopy); !exists {
 				up, _, _ := s.pingInternal(targetCopy)
 				if up {
