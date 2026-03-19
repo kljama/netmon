@@ -48,6 +48,13 @@ func (c *Config) GenerateTargets() ([]string, error) {
 			return nil, fmt.Errorf("invalid network or IP %q: %w", network, err)
 		}
 
+		// Security Check: Prevent memory exhaustion / DoS from oversized subnets
+		// Maximum allowed is /16 for IPv4 and /112 for IPv6 (65536 addresses)
+		ones, bits := ipnet.Mask.Size()
+		if bits-ones > 16 {
+			return nil, fmt.Errorf("network %q is too large; max allowed size is 65536 addresses (e.g. /16 for IPv4)", network)
+		}
+
 		// Calculate broadcast address outside the loop for IPv4
 		var broadcast net.IP
 		ip4 := ip.To4()
