@@ -26,7 +26,7 @@ func BenchmarkRecordPing(b *testing.B) {
 		os.Unsetenv("INFLUX_BUCKET")
 	}()
 
-	client, err := NewMetricsClient()
+	client, err := NewMetricsClient(10 * time.Second)
 	if err != nil {
 		b.Fatalf("Failed to create metrics client: %v", err)
 	}

@@ -323,6 +323,50 @@
                 "value": "Host IP"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Packet Loss %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                }
+              }
+            ]
           }
         ]
       },
@@ -360,10 +404,25 @@
           },
           "query": "from(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: ${host:json}))\n  |> group(columns: [\"target\"])\n  |> last()\n  |> group()\n  |> keep(columns: [\"target\", \"_time\", \"_value\"])",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "InfluxDB"
+          },
+          "query": "from(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: ${host:json}))\n  |> group(columns: [\"target\"])\n  |> map(fn: (r) => ({ r with _value: if r._value == true then 0.0 else 100.0 }))\n  |> mean()\n  |> group()\n  |> keep(columns: [\"target\", \"_value\"])",
+          "refId": "B"
         }
       ],
       "title": "Scalable Host Overview (Sorted by Status)",
       "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "target",
+            "mode": "outer"
+          }
+        },
         {
           "id": "organize",
           "options": {
@@ -374,7 +433,11 @@
               "_stop": true
             },
             "indexByName": {},
-            "renameByName": {}
+            "renameByName": {
+              "_value 1": "Status",
+              "_time 1": "Last Seen",
+              "_value 2": "Packet Loss %"
+            }
           }
         }
       ],

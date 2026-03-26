@@ -15,7 +15,7 @@ func main() {
 	}
 	log.Printf("Loaded config: %v networks, scan interval %v, discovery interval %v, timeout %v", len(cfg.Networks), cfg.ScanInterval, cfg.DiscoveryInterval, cfg.Timeout)
 
-	metrics, err := NewMetricsClient()
+	metrics, err := NewMetricsClient(cfg.ScanInterval)
 	if err != nil {
 		log.Fatalf("Failed to initialize metrics client: %v", err)
 	}
