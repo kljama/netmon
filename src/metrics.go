@@ -17,7 +17,7 @@ type MetricsClient struct {
 	bucket   string
 }
 
-func NewMetricsClient() (*MetricsClient, error) {
+func NewMetricsClient(scanInterval time.Duration) (*MetricsClient, error) {
 	url := os.Getenv("INFLUX_URL")
 	token := os.Getenv("INFLUX_TOKEN")
 	org := os.Getenv("INFLUX_ORG")
@@ -27,7 +27,8 @@ func NewMetricsClient() (*MetricsClient, error) {
 		return nil, fmt.Errorf("missing InfluxDB environment variables (INFLUX_URL, INFLUX_TOKEN, INFLUX_ORG, INFLUX_BUCKET)")
 	}
 
-	client := influxdb2.NewClient(url, token)
+	options := influxdb2.DefaultOptions().SetFlushInterval(uint(scanInterval.Milliseconds()))
+	client := influxdb2.NewClientWithOptions(url, token, options)
 	writeAPI := client.WriteAPI(org, bucket)
 
 	// Listen to background write errors
