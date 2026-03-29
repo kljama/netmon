@@ -248,7 +248,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Status"
+                "value": "Packet Loss"
               },
               {
                 "id": "custom.cellOptions",
@@ -263,24 +263,8 @@
                 }
               },
               {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "false": {
-                        "color": "red",
-                        "index": 1,
-                        "text": "DOWN"
-                      },
-                      "true": {
-                        "color": "green",
-                        "index": 0,
-                        "text": "UP"
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
+                "id": "unit",
+                "value": "percent"
               },
               {
                 "id": "thresholds",
@@ -288,12 +272,16 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "red",
+                      "color": "green",
                       "value": null
                     },
                     {
-                      "color": "green",
-                      "value": 1
+                      "color": "orange",
+                      "value": 0.001
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
                     }
                   ]
                 }
@@ -346,8 +334,8 @@
         "showHeader": true,
         "sortBy": [
           {
-            "desc": false,
-            "displayName": "Status"
+            "desc": true,
+            "displayName": "Packet Loss"
           }
         ]
       },
@@ -358,11 +346,11 @@
             "type": "influxdb",
             "uid": "InfluxDB"
           },
-          "query": "from(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: ${host:json}))\n  |> group(columns: [\"target\"])\n  |> last()\n  |> group()\n  |> keep(columns: [\"target\", \"_time\", \"_value\"])",
+          "query": "from(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: ${host:json}))\n  |> group(columns: [\"target\"])\n  |> reduce(\n      fn: (r, accumulator) => ({\n        total: accumulator.total + 1.0,\n        lost: if r._value == false then accumulator.lost + 1.0 else accumulator.lost,\n        last_time: if r._value == true then r._time else accumulator.last_time\n      }),\n      identity: {total: 0.0, lost: 0.0, last_time: 1970-01-01T00:00:00Z}\n    )\n  |> filter(fn: (r) => r.lost > 0.0)\n  |> map(fn: (r) => ({ target: r.target, _time: r.last_time, _value: (r.lost / r.total) * 100.0 }))\n  |> group()",
           "refId": "A"
         }
       ],
-      "title": "Scalable Host Overview (Sorted by Status)",
+      "title": "Hosts with Outages or Packet Loss",
       "transformations": [
         {
           "id": "organize",
@@ -545,7 +533,7 @@
             "type": "influxdb",
             "uid": "InfluxDB"
           },
-          "query": "from(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: ${host:json}))\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"last\")",
+          "query": "targets = from(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: ${host:json}))\n  |> toInt()\n  |> group(columns: [\"target\"])\n  |> mean()\n  |> group()\n  |> sort(columns: [\"_value\"], desc: false)\n  |> limit(n: 10)\n  |> findColumn(fn: (key) => true, column: \"target\")\n\nfrom(bucket: \"metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"up\")\n  |> filter(fn: (r) => contains(value: r[\"target\"], set: targets))\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"last\")",
           "refId": "A"
         }
       ],
