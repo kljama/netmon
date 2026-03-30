@@ -361,7 +361,11 @@
               "_start": true,
               "_stop": true
             },
-            "indexByName": {},
+            "indexByName": {
+              "_time": 0,
+              "target": 1,
+              "_value": 2
+            },
             "renameByName": {}
           }
         }
