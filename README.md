@@ -22,7 +22,7 @@ Netmon is a performant, containerized network monitoring tool that periodically 
 
 ## Services
 
-- Grafana: `http://localhost:3000` (Login using the credentials defined in your `.env` file)
+- Grafana: `http://localhost:3000` (Accessible immediately without login. To make administrative changes, login using the credentials defined in your `.env` file)
 - InfluxDB: `http://localhost:8086`
 
 ## Architecture
