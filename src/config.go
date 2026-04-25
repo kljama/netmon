@@ -83,18 +83,19 @@ func (c *Config) GenerateTargets() ([]string, error) {
 			}
 		}
 
-		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
-			// Skip network address and broadcast address for IPv4 (except /31 and /32 point-to-point/host links)
-			if isIPv4 && ones < 31 {
-				if ip.Equal(ipnet.IP) {
+		currIP := ip.Mask(ipnet.Mask)
+		if isIPv4 && ones < 31 {
+			for ; ipnet.Contains(currIP); inc(currIP) {
+				// Skip network address and broadcast address for IPv4 (except /31 and /32 point-to-point/host links)
+				if currIP.Equal(ipnet.IP) || currIP.Equal(broadcast) {
 					continue
 				}
-
-				if ip.Equal(broadcast) {
-					continue
-				}
+				targets = append(targets, currIP.String())
 			}
-			targets = append(targets, ip.String())
+		} else {
+			for ; ipnet.Contains(currIP); inc(currIP) {
+				targets = append(targets, currIP.String())
+			}
 		}
 	}
 	return targets, nil
