@@ -537,7 +537,7 @@
             "type": "influxdb",
             "uid": "InfluxDB"
           },
-          "query":   "from(bucket: \"metrics\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\") |> filter(fn: (r) => r[\"_field\"] == \"up\") |> filter(fn: (r) => r[\"target\"] =~ /^${host:regex}$/) |> map(fn: (r) => ({ r with _value: if r._value == true then 1 else 0 })) |> keep(columns: [\"_time\", \"_value\", \"target\"])",
+          "query":   "from(bucket: \"metrics\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r[\"_measurement\"] == \"icmp_ping\") |> filter(fn: (r) => r[\"_field\"] == \"up\") |> filter(fn: (r) => r[\"target\"] =~ /^${host:regex}$/)|> keep(columns: [\"_time\", \"_value\", \"target\"])",
           "refId": "A"
         }
       ],
